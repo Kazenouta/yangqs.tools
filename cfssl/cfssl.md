@@ -127,10 +127,7 @@ server.json 参数解释
         {
             "O":  "yangqs"
         }
-    ],
-    "ca": {
-        "expiry": "8640h"
-    }
+    ]
 }
 ```
 
@@ -172,7 +169,7 @@ func main() {
 	// 启动服务
 	log.Fatal(srv.ListenAndServeTLS(tlsServer, tlsServerKey))
 }
-
+```
 
 - 导入 `CA证书` 至系统
 - 浏览器访问 https://localhost:8443 或 https://127.0.0.1:8443 
