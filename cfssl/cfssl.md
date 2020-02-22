@@ -39,7 +39,7 @@ https://github.com/cloudflare/cfssl/releases
     - 生成证书文件（包含公钥）
 - 使用 `CA` 的私钥和证书签署 `Server`
 - 把 `CA` 证书导入系统
-    - 在 win/mac 上部部署需要把证书后缀改为 .crt
+    - 在 win/mac 上部部署把证书后缀改为 .crt 可图形化安装
 - 服务器部署时使用 `Server` 的私钥和证书
 
 ### 2、需要的工具
