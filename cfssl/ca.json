@@ -1,0 +1,14 @@
+{
+    "key": {
+        "algo": "rsa",
+        "size": 2048
+    },
+    "names": [
+        {
+            "O":  "yangqs"
+        }
+    ],
+    "ca": {
+        "expiry": "86400h"
+    }
+}
