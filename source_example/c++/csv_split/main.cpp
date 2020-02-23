@@ -142,14 +142,33 @@ typedef std::unordered_map<unsigned long, mem_node_head*> mem_node_map;
 typedef std::pair<unsigned long, mem_node_head*> mem_node_pair;
 static mem_node_map mem_nodes;
 
-static inline void parse_csv(const char* buf, size_t size, size_t& line_count)
+// 数据检查
+static inline void line_check(const char* begin, size_t size, const size_t line_count)
+{
+    int dot_count = 0;
+    for (size_t i = 0; i < size; i++) {
+        if (begin[i] == ',') {
+            dot_count++;
+        }
+    }
+    if (dot_count != 13) {
+        std::string line = std::string(begin, 0, size);
+        std::cerr << "line_count=" << line_count
+                  << " | dot_count=" << dot_count
+                  << " | data=" << line << std::endl;
+        std::exit(-1);
+    }
+}
+
+static void parse_csv(const char* buf, size_t size, size_t& line_count)
 {
     //BEGIN_TIME(__parse_csv);
     const char* sym = nullptr;
     const char* cur = buf;
     const char* beg = buf;
+    const char* end = &buf[size-1];
 
-    while (size > 0) {
+    while (cur != end) {
         if (*cur == '\n') {
             if (sym == nullptr) {
                 std::cerr << " invalid data sym is nil, data="
@@ -158,8 +177,8 @@ static inline void parse_csv(const char* buf, size_t size, size_t& line_count)
                           << std::endl;
                 std::exit(-1);
             }
-            line_count++;
 
+#if 1
             auto symbol = cstrhash(beg, size_t(sym-beg));
             mem_node_head* head = nullptr;
 
@@ -172,9 +191,13 @@ static inline void parse_csv(const char* buf, size_t size, size_t& line_count)
                 head = it->second;
             }
             head->add(beg, size_t(cur-beg)+1);
+#else
+            line_check(beg, size_t(cur-beg), line_count);
+#endif
 
             sym = nullptr;
             beg = cur + 1;
+            line_count++;
         } else if (sym == nullptr && *cur == ',') {
             sym = cur;
         }
@@ -195,9 +218,18 @@ static void load_csv(const char* filename)
         std::exit(-1);
     }
 
+    std::setvbuf(fp, nullptr, _IONBF, 0);
+    std::fseek(fp, 0, SEEK_END);
+
+    long all_read_bytes = 0;
+    long file_size = std::ftell(fp);
+    size_t line_count = 0;
+
+    std::fseek(fp, 0, SEEK_SET);
+
+#if 1
     char *buf = new char[READ_BUF_SIZE];
     size_t buf_used = 0;
-    size_t line_count = 0;
 
     while (!std::feof(fp)) {
         // buf_used 表示未处理的数据，避免覆盖
@@ -206,7 +238,8 @@ static void load_csv(const char* filename)
             std::cerr << "read failed : " << std::strerror(std::ferror(fp)) << std::endl;
             std::exit(-1);
         }
-        // 总的数据 = 缓存之前的数据 + 当前读取到的数据
+        all_read_bytes += read_bytes;
+        // 缓存总数据 = 缓存之前的数据 + 当前读取到的数据
         auto data_size = buf_used + read_bytes;
         // 处理：挑取不完整的数据
         // 寻找最后一个换行符位置，换行符是完整数据条件
@@ -226,8 +259,25 @@ static void load_csv(const char* filename)
         if (last_ln < (data_size - 1)) {
             buf_used = data_size - 1 - last_ln;
             std::memcpy(buf, &buf[last_ln+1], buf_used);
+        } else {
+            buf_used = 0;
         }
     }
+#else
+    char *buf = new char[file_size];
+    all_read_bytes = static_cast<long>(std::fread(buf, 1, static_cast<size_t>(file_size), fp));
+    if (all_read_bytes != file_size) {
+        std::cerr << "read failed : " << std::strerror(std::ferror(fp)) << std::endl;
+        std::exit(-1);
+    }
+    parse_csv(buf, static_cast<size_t>(all_read_bytes), line_count);
+#endif
+
+    std::cout << "file_size=" << file_size
+              << " all_read_bytes=" << all_read_bytes
+              << " eq=" << (file_size == all_read_bytes ? "true" : "false")
+              << std::endl;
+
     std::fclose(fp);
     delete[] buf;
 
