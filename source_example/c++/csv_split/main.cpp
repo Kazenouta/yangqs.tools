@@ -178,7 +178,7 @@ static void parse_csv(const char* buf, size_t size, size_t& line_count)
     const char* sym = nullptr;
     const char* cur = buf;
     const char* beg = buf;
-    const char* end = &buf[size-1];
+    const char* end = &buf[size];
 
     while (cur != end) {
         if (*cur == '\n') {
