@@ -16,8 +16,8 @@
     std::cout << #__begin << " use " << __interval.count() << "ms" << std::endl; \
     } while (false)
 
-static const size_t MEM_NODE_SIZE = 2*1024*1024; // 写缓存大小
-static const size_t READ_BUF_SIZE = 4*1024*1024; // 读缓存大小
+static const size_t MEM_NODE_SIZE = 1*1024*1024; // 写缓存大小
+static const size_t READ_BUF_SIZE = 1*1024*1024; // 读缓存大小
 
 // 缓存节点，单向链表
 struct mem_node
@@ -98,12 +98,24 @@ struct mem_node_head
     size_t save(const std::string& path)
     {
         std::string save_name = path + this->name + ".csv";
-        std::FILE *save_fp = std::fopen(save_name.c_str(), "wb");
+        std::FILE *save_fp = std::fopen(save_name.c_str(), "ab+");
         if (save_fp == nullptr) {
             std::cerr << "save file failed : symbol=" << save_name << std::endl;
             std::exit(-1);
         }
         size_t mem_size = 0;
+        // 写入表头
+        std::fseek(save_fp, 0, SEEK_END);
+        // if (std::feof(save_fp)) {
+        if (0 == std::ftell(save_fp)) {
+            const char* head = "Symbol,TradingDate,TradingTime,RecID,TradeChannel,TradePrice,TradeVolume,TradeAmount,UNIX,Market,BuyRecID,SellRecID,BuySellFlag,SecurityID\n"; // 注意换行符一定要有
+            if (std::fwrite(head, 1, std::strlen(head), save_fp) != std::strlen(head)) {
+            std::cerr << "write file failed : symbol=" << this->name
+                << " err=" << std::strerror(std::ferror(save_fp))
+                << std::endl;
+            std::exit(-1);
+            }
+        }
         // 依次遍历内存数据，并写入文件内
         for (auto node = this->head; node != nullptr; node = node->next) {
             if (std::fwrite(node->buf, 1, node->used, save_fp) != node->used) {
@@ -287,7 +299,7 @@ static void load_csv(const char* filename)
 int main(int argc, char **argv)
 {
     std::cout << "argc=" << argc << " argv[0]=" << argv[0] << std::endl;
-    load_csv("F:/database/symbols.csv");
+    load_csv("data.csv");
 
     std::cout << "mem_nodes.size=" << mem_nodes.size() << std::endl;
     size_t all_mem_size = 0;
