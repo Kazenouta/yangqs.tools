@@ -95,7 +95,7 @@ struct mem_node_head
         }
     }
 
-    size_t save(const std::string& path)
+    size_t save(const std::string& path, const std::string& csv_header)
     {
         std::string save_name = path + this->name + ".csv";
         std::FILE *save_fp = std::fopen(save_name.c_str(), "ab+");
@@ -108,8 +108,9 @@ struct mem_node_head
         std::fseek(save_fp, 0, SEEK_END);
         // if (std::feof(save_fp)) {
         if (0 == std::ftell(save_fp)) {
-            const char* head = "Symbol,TradingDate,TradingTime,RecID,TradeChannel,TradePrice,TradeVolume,TradeAmount,UNIX,Market,BuyRecID,SellRecID,BuySellFlag,SecurityID\n"; // 注意换行符一定要有
-            if (std::fwrite(head, 1, std::strlen(head), save_fp) != std::strlen(head)) {
+            // const char* head = csv_header, "\n"; // 注意换行符一定要有
+            std::string head = csv_header + "\n";
+            if (std::fwrite(head.c_str(), 1, std::strlen(head.c_str()), save_fp) != std::strlen(head.c_str())) {
             std::cerr << "write file failed : symbol=" << this->name
                 << " err=" << std::strerror(std::ferror(save_fp))
                 << std::endl;
@@ -299,14 +300,20 @@ static void load_csv(const char* filename)
 int main(int argc, char **argv)
 {
     std::cout << "argc=" << argc << " argv[0]=" << argv[0] << std::endl;
-    load_csv("data.csv");
+
+
+    char *infile_path = argv[1]; 
+    char *store_dir = argv[2]; 
+    char *csv_header = argv[3];
+
+    load_csv(infile_path);
 
     std::cout << "mem_nodes.size=" << mem_nodes.size() << std::endl;
     size_t all_mem_size = 0;
 
     BEGIN_TIME(__save_symbols);
     for (auto it : mem_nodes) {
-        all_mem_size += it.second->save("data/");
+        all_mem_size += it.second->save(store_dir, csv_header);
     }
     END_TIME(__save_symbols);
 
